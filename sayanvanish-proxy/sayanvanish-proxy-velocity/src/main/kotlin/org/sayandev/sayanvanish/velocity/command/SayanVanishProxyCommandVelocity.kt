@@ -86,7 +86,7 @@ class SayanVanishProxyCommandVelocity : VelocityCommand(settings.command.name, *
             "off" -> user.unVanish(options)
             else -> user.toggleVanish(options)
         }
-        context.sender().platformSender().sendComponent(language.vanish.vanishToggle.component(Placeholder.unparsed("player", targetPlayer.username), Placeholder.parsed("state", user.stateText(!user.isVanished))))
+        context.sender().platformSender().sendComponent(language.vanish.vanishToggle.component(Placeholder.unparsed("player", targetPlayer.username), Placeholder.parsed("state", user.stateText(user.isVanished))))
     }
 
     init {
