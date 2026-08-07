@@ -1,6 +1,6 @@
 package org.sayandev.sayanvanish.bukkit.command
 
-import org.sayandev.sayanventure.adventure.text.minimessage.tag.resolver.Placeholder
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import org.bukkit.OfflinePlayer
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -104,9 +104,9 @@ class SayanVanishCommand : BukkitCommand(settings.vanishCommand.name, *settings.
         }
 
         when (state) {
-            "on" -> user.vanish(options)
-            "off" -> user.unVanish(options)
-            else -> user.toggleVanish(options)
+            "on" -> user.vanishAsync(options)
+            "off" -> user.unVanishAsync(options)
+            else -> user.toggleVanishAsync(options)
         }
     }
 

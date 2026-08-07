@@ -16,6 +16,13 @@ interface User : BasicUser {
     fun vanish(options: VanishOptions) {
         isVanished = true
         save()
+        Platform.get().logger.info("$username has vanished.")
+    }
+
+    fun vanishAsync(options: VanishOptions) {
+        isVanished = true
+        saveAsync()
+        Platform.get().logger.info("$username has vanished.")
     }
 
     fun vanish() {
@@ -25,6 +32,13 @@ interface User : BasicUser {
     fun unVanish(options: VanishOptions) {
         isVanished = false
         save()
+        Platform.get().logger.info("$username has un-vanished.")
+    }
+
+    fun unVanishAsync(options: VanishOptions) {
+        isVanished = false
+        saveAsync()
+        Platform.get().logger.info("$username has un-vanished.")
     }
 
     fun unVanish() {
@@ -68,6 +82,11 @@ interface User : BasicUser {
     override fun save() {
         serverId = Platform.get().serverId
         SayanVanishAPI.getInstance().database.addUser(this)
+    }
+
+    fun saveAsync() {
+        serverId = Platform.get().serverId
+        SayanVanishAPI.getInstance().database.addUserAsync(this)
     }
 
     fun delete() {

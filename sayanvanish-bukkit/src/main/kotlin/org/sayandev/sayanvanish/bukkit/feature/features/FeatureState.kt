@@ -1,20 +1,26 @@
 package org.sayandev.sayanvanish.bukkit.feature.features
 
-import org.sayandev.sayanventure.adventure.text.minimessage.tag.resolver.Placeholder
+import kotlinx.coroutines.delay
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.sayandev.sayanvanish.api.Permission
+import org.sayandev.sayanvanish.api.SayanVanishAPI
 import org.sayandev.sayanvanish.api.VanishOptions
 import org.sayandev.sayanvanish.api.feature.Configurable
 import org.sayandev.sayanvanish.api.feature.RegisteredFeature
 import org.sayandev.sayanvanish.bukkit.api.SayanVanishBukkitAPI
 import org.sayandev.sayanvanish.bukkit.api.SayanVanishBukkitAPI.Companion.getOrAddUser
-import org.sayandev.sayanvanish.bukkit.api.SayanVanishBukkitAPI.Companion.getOrCreateUser
 import org.sayandev.sayanvanish.bukkit.api.SayanVanishBukkitAPI.Companion.user
+import org.sayandev.sayanvanish.bukkit.api.event.BukkitUserUnVanishEvent
+import org.sayandev.sayanvanish.bukkit.api.event.BukkitUserVanishEvent
 import org.sayandev.sayanvanish.bukkit.config.language
 import org.sayandev.sayanvanish.bukkit.feature.ListenedFeature
+import org.sayandev.stickynote.bukkit.async
+import org.sayandev.stickynote.bukkit.launch
+import org.sayandev.stickynote.bukkit.utils.ServerVersion
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Comment
 
@@ -36,6 +42,7 @@ class FeatureState(
     @Configurable val checkPermissionOnQuit: Boolean = true,
     @Comment("Whether to check permission when a player quits the server")
     @Configurable val checkPermissionOnJoin: Boolean = true,
+    @Configurable val useBukkitInvisibilityApi: Boolean = false,
 ) : ListenedFeature("state", critical = true) {
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -55,8 +62,7 @@ class FeatureState(
 
             if (tempUser.hasPermission(Permission.VANISH_ON_JOIN) || vanishOnJoin) {
                 tempUser.isVanished = true
-                tempUser.vanish(vanishJoinOptions)
-                tempUser.save()
+                tempUser.vanishAsync(vanishJoinOptions)
             }
             return
         }
@@ -65,14 +71,14 @@ class FeatureState(
 
         if (checkPermissionOnJoin && !user.hasPermission(Permission.VANISH)) {
             user.sendComponent(language.vanish.noPermissionToKeepVanished, Placeholder.unparsed("permission", Permission.VANISH.permission()))
-            user.unVanish(vanishJoinOptions)
+            user.unVanishAsync(vanishJoinOptions)
             user.delete()
             return
         }
 
         if (user.hasPermission(Permission.VANISH_ON_JOIN) || (user.isVanished && remember) || vanishOnJoin) {
             user.isVanished = true
-            user.vanish(vanishJoinOptions)
+            user.vanishAsync(vanishJoinOptions)
         }
 
         if (user.isVanished) {
@@ -82,8 +88,6 @@ class FeatureState(
                 }
             }
         }
-
-        user.save()
         return
     }
 
@@ -102,10 +106,37 @@ class FeatureState(
 
         if ((reappearOnQuit && user.isVanished) || (checkPermissionOnQuit && !user.hasPermission(Permission.VANISH))) {
             user.unVanish(VanishOptions.Builder().isOnQuit(true).build())
+        } else {
+            if (user.isOnline) {
+                launch {
+                    async {
+                        delay(2500)
+                        val isOnlineAfterQuit = SayanVanishAPI.getInstance().database.hasBasicUser(user.uniqueId, false)
+                        if (!isOnlineAfterQuit) {
+                            user.isOnline = false
+                            user.saveAsync()
+                        }
+                    }
+                }
+            }
         }
-        user.isOnline = false
+    }
 
-        user.save()
+    @EventHandler
+    private fun onPlayerVanish(event: BukkitUserVanishEvent) {
+        val user = event.user
+        if (!useBukkitInvisibilityApi) return
+        if (!ServerVersion.supports(16)) return
+
+        user.player()?.isInvisible = true
+    }
+
+    @EventHandler
+    private fun onPlayerUnVanish(event: BukkitUserUnVanishEvent) {
+        val user = event.user
+        if (!ServerVersion.supports(16)) return
+
+        user.player()?.isInvisible = false
     }
 
 }
