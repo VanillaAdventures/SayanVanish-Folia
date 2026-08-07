@@ -108,7 +108,9 @@ class FeatureFakeMessage(
                         )
                     )
                 } else {
-                    player.sendRawComponent(PlaceholderAPIHook.injectPlaceholders(user.offlinePlayer(), fakeQuitMessage), Placeholder.unparsed("player", user.username))
+                    val processedMessage = PlaceholderAPIHook.injectPlaceholders(user.offlinePlayer(), fakeQuitMessage)
+                        .replace("<player>", user.username)
+                    player.sendRawComponent(processedMessage)
                 }
             }
         }
@@ -129,7 +131,9 @@ class FeatureFakeMessage(
                         )
                     )
                 } else {
-                    player.sendRawComponent(PlaceholderAPIHook.injectPlaceholders(user.offlinePlayer(), fakeJoinMessage), Placeholder.unparsed("player", user.username))
+                    val processedMessage = PlaceholderAPIHook.injectPlaceholders(user.offlinePlayer(), fakeJoinMessage)
+                        .replace("<player>", user.username)
+                    player.sendRawComponent(processedMessage)
                 }
             }
         }

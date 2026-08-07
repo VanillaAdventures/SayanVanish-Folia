@@ -7,6 +7,7 @@ import org.sayandev.sayanvanish.api.feature.category.FeatureCategories
 import org.sayandev.sayanvanish.bukkit.api.event.BukkitUserUnVanishEvent
 import org.sayandev.sayanvanish.bukkit.api.event.BukkitUserVanishEvent
 import org.sayandev.sayanvanish.bukkit.feature.ListenedFeature
+import org.sayandev.sayanvanish.bukkit.utils.FoliaUtils
 import org.sayandev.stickynote.bukkit.StickyNote
 import org.sayandev.stickynote.bukkit.hasPlugin
 import org.sayandev.stickynote.bukkit.warn
@@ -22,15 +23,25 @@ class FeaturePreventPush: ListenedFeature("prevent_push", enabled = false, categ
         if (!isActive(user)) return
         val player = user.player() ?: return
 
-
         if (hasPlugin("eGlow")) {
             StickyNote.warn("tried to register vanished team for user ${user.username} but $id feature is not compatible with eGlow. disable $id feature to remove the warning.")
             return
         }
 
+        // В Folia нельзя создавать команды scoreboard напрямую
+        if (FoliaUtils.isFolia) {
+            StickyNote.warn("Feature $id is not compatible with Folia due to scoreboard limitations. Disable this feature to remove the warning.")
+            return
+        }
+
         var team = player.scoreboard.getTeam("Vanished")
         if (team == null) {
-            team = player.scoreboard.registerNewTeam("Vanished")
+            try {
+                team = player.scoreboard.registerNewTeam("Vanished")
+            } catch (e: UnsupportedOperationException) {
+                StickyNote.warn("Failed to register vanished team for user ${user.username}: ${e.message}")
+                return
+            }
         }
         team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER)
         team.addEntry(player.name)
@@ -41,6 +52,12 @@ class FeaturePreventPush: ListenedFeature("prevent_push", enabled = false, categ
         val user = event.user
         if (!isActive(user)) return
         val player = user.player() ?: return
+        
+        // В Folia нельзя работать с командами scoreboard напрямую
+        if (FoliaUtils.isFolia) {
+            return
+        }
+        
         /* Make sure the player has `Vanished` team before removing it. Prevents 1.21 players to get kicked with ISE:
         java.lang.IllegalStateException: Player is either on another team or not on any team. Cannot remove from team 'Vanished'.*/
         val teams = player.scoreboard.teams
